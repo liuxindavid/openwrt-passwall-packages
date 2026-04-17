@@ -1,0 +1,39 @@
+name: Sync upstream passwall-packages
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '27 18 * * *'
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout current repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Sync from upstream but keep local workflows
+        run: |
+          set -eux
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git remote remove upstream || true
+          git remote add upstream https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git
+
+          git fetch upstream --prune
+          git fetch upstream --tags --force
+
+          git checkout upstream/main -- . ':(exclude).github/workflows'
+
+          git add -A
+          git commit -m "Sync upstream passwall-packages" || true
+
+          git push origin HEAD:main
+          git push origin --tags --force
